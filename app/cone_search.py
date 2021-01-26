@@ -1,14 +1,16 @@
 from functools import singledispatch
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+import math
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from catsHTM import cone_search
 from extcats.catquery_utils import get_closest, get_distances
+from extcats.CatalogQuery import CatalogQuery
 from fastapi import APIRouter
 
-from .extcats import get_catq
+from .mongo import get_mongo
 from .models import (
     CatalogItem,
     CatsHTMQueryItem,
@@ -19,6 +21,9 @@ from .settings import settings
 
 if TYPE_CHECKING:
     from astropy.table.row import Row
+
+def get_catq(name: str) -> CatalogQuery:
+    return CatalogQuery(name, dbclient=next(get_mongo()))
 
 @singledispatch
 def search_any_item(item, coord: SkyCoord) -> bool:
@@ -43,19 +48,27 @@ def _(item: CatsHTMQueryItem, coord: SkyCoord) -> bool:
     )
     return len(srcs) > 0
 
+def sanitize_json(obj):
+    if isinstance(obj, dict):
+        return {k: sanitize_json(v) for k, v in obj.items()}
+    elif isinstance(obj, (tuple, list)):
+        return [sanitize_json(v) for v in obj]
+    elif isinstance(obj, float) and math.isnan(obj):
+        return None
+    else:
+        return obj
 
 def table_to_json(table: Optional["Table"]) -> Optional[List[Dict[str, Any]]]:
     if table is None:
         return None
     keys = table.keys()
-    return [{k: v for k, v in zip(keys, row) if k != "_id"} for row in table.iterrows()]
-
+    return [{k: sanitize_json(v) for k, v in zip(keys, np.asarray(row).tolist())} for row in table.iterrows()]
 
 def row_to_json(row: Optional["Row"]) -> Dict[str, Any]:
     if row is None:
         return None
     keys = row.table.keys()
-    return {k: v for k, v in zip(keys, row) if k != "_id"}
+    return {k: sanitize_json(v) for k, v in zip(keys, np.asarray(row).tolist())}
 
 
 @singledispatch
@@ -66,10 +79,11 @@ def search_nearest_item(item, coord: SkyCoord) -> Optional[CatalogItem]:
 
 @search_nearest_item.register
 def _(item: ExtcatsQueryItem, coord: SkyCoord) -> Optional[CatalogItem]:
-    # FIXME: add projection
-    # sic
+    projection = {"_id": 0, "pos": 0}
+    if item.keys_to_append:
+        projection.update({k: 1 for k in item.keys_to_append})
     item, dist = get_catq(item.name).findclosest(
-        coord.ra.deg, coord.dec.deg, item.rs_arcsec
+        coord.ra.deg, coord.dec.deg, item.rs_arcsec, projection=projection,
     )
     if item:
         return CatalogItem(body=row_to_json(item), dist_arcsec=dist)
@@ -94,7 +108,7 @@ def _(item: CatsHTMQueryItem, coord: SkyCoord) -> Optional[CatalogItem]:
     row, dist = get_closest(coord.ra.degree, coord.dec.degree, srcs_tab, "ra", "dec",)
     keys = set(item.keys_to_append or [])
     return CatalogItem(
-        body={k: v for k, v in zip(srcs_tab.keys(), row) if k in keys}, dist_arcsec=dist
+        body=row_to_json(row), dist_arcsec=dist
     )
 
 
@@ -106,21 +120,20 @@ def search_all_item(item, coord: SkyCoord) -> Optional[List[CatalogItem]]:
 
 @search_all_item.register
 def _(item: ExtcatsQueryItem, coord: SkyCoord) -> Optional[List[CatalogItem]]:
-    # FIXME: add projection here
-    
     projection = {"_id": 0, "pos": 0}
     if item.keys_to_append:
-        projection.update({k: 1 for k in item.keys_to_append})
+        projection = {k: 1 for k in item.keys_to_append}
     srcs_tab = get_catq(item.name).findwithin(
         coord.ra.deg, coord.dec.deg, item.rs_arcsec, projection=projection
     )
     if srcs_tab:
         dists = get_distances(coord.ra.degree, coord.dec.degree, srcs_tab, "ra", "dec",)
+        rows = table_to_json(srcs_tab)
         return [
             CatalogItem(
-                body={k: v for k, v in zip(srcs_tab.keys(), row)}, dist_arcsec=dist
+                body=row, dist_arcsec=dist
             )
-            for row, dist in zip(srcs_tab.iterrows(), dists)
+            for row, dist in zip(rows, dists)
         ]
     else:
         return None
@@ -141,13 +154,13 @@ def _(item: CatsHTMQueryItem, coord: SkyCoord) -> Optional[List[CatalogItem]]:
     srcs_tab["ra"] = np.degrees(srcs_tab[colnames[0]])
     srcs_tab["dec"] = np.degrees(srcs_tab[colnames[1]])
     dists = get_distances(coord.ra.degree, coord.dec.degree, srcs_tab, "ra", "dec",)
-    keys = set(item.keys_to_append or [])
+    rows = table_to_json(srcs_tab)
     return [
         CatalogItem(
-            body={k: v for k, v in zip(srcs_tab.keys(), row) if k in keys},
+            body=row,
             dist_arcsec=dist,
         )
-        for row, dist in zip(srcs_tab.iterrows(), dists)
+        for row, dist in zip(rows, dists)
     ]
 
 router = APIRouter()

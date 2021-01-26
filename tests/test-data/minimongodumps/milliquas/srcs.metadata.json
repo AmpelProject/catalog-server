@@ -1,0 +1,1 @@
+{"options":{},"indexes":[{"v":2,"key":{"_id":1},"name":"_id_","ns":"milliquas.srcs"},{"v":2,"key":{"hpxid_16":1},"name":"hpxid_16_1","ns":"milliquas.srcs"},{"v":2,"key":{"pos":"2dsphere"},"name":"pos_2dsphere","ns":"milliquas.srcs","2dsphereIndexVersion":3}],"uuid":"76f02a8b47c84aae8709e7bc0b902f38"}
