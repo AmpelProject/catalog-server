@@ -1,12 +1,12 @@
 import io
 import re
+from typing import List
 
 from fastapi import APIRouter, Depends
 
+from .models import CatalogDescription
 from .mongo import get_mongo, MongoClient
 from .settings import settings
-from .models import CatalogDescription
-from typing import List
 
 
 def catshtm_catalog_descriptions():
