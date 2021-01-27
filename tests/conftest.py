@@ -20,7 +20,7 @@ def mock_mongoclient():
         db = mc.get_database(catalog)
         with open(test_data_dir / "minimongodumps" / catalog / "meta.bson", "rb") as f:
             db.get_collection("meta").insert_many(
-                decode_all(f.read()) + [{"_id": "keys", "ra": "ra", "dec": "dec",}]
+                decode_all(f.read())
             )
         with open(test_data_dir / "minimongodumps" / catalog / "srcs.bson", "rb") as f:
             db.get_collection("srcs").insert_many(decode_all(f.read()))
