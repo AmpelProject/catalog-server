@@ -1,3 +1,3 @@
 fastapi>=0.60.0,<0.61
-catsHTM==0.1.15
+catsHTM==0.1.32
 extcats @ https://github.com/AmpelProject/extcats/tarball/usability-improvements
