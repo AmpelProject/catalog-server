@@ -1,0 +1,20 @@
+{
+    "listeners": {
+        "*:80": {
+            "pass": "applications/catalog-server"
+        }
+    },
+
+    "applications": {
+        "catalog-server": {
+            "type": "python 3.7",
+            "path": "/www",
+            "module": "app.main",
+            "callable": "app",
+            "environment": {
+              "MONGO_URI": "mongodb://db:27017",
+              "CATSHTM_DIR": "/data/catsHTM"
+            }
+        }
+    }
+}

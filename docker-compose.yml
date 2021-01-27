@@ -1,0 +1,17 @@
+# docker-compose for integration test
+version: "3.9"
+   
+services:
+  db:
+    image: mongo:4.0
+    volumes:
+      - ./tests/test-data/minimongodumps:/docker-entrypoint-initdb.d
+  web:
+    build: .
+    volumes:
+      - ./tests/test-data/nginx-unit:/docker-entrypoint.d
+      - ./tests/test-data/catsHTM2:/data/catsHTM
+    ports:
+      - "80"
+    depends_on:
+      - db

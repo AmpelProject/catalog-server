@@ -1,3 +1,6 @@
+import json
+import subprocess
+import time
 from pathlib import Path
 
 import mongomock
@@ -19,9 +22,7 @@ def mock_mongoclient():
     for catalog in ("milliquas",):
         db = mc.get_database(catalog)
         with open(test_data_dir / "minimongodumps" / catalog / "meta.bson", "rb") as f:
-            db.get_collection("meta").insert_many(
-                decode_all(f.read())
-            )
+            db.get_collection("meta").insert_many(decode_all(f.read()))
         with open(test_data_dir / "minimongodumps" / catalog / "srcs.bson", "rb") as f:
             db.get_collection("srcs").insert_many(decode_all(f.read()))
         assert db.get_collection("srcs").count() == 10
@@ -30,12 +31,7 @@ def mock_mongoclient():
 
 @pytest.fixture
 def mock_extcats(monkeypatch, mock_mongoclient):
-
     monkeypatch.setattr("app.mongo.mongo_db", mock_mongoclient)
-    # replace filter with nothing
-    # (mongomock supports neither $geoNear nor $where)
-    # FIXME: disable only for geoJSON queries
-    # monkeypatch.setattr("extcats.catquery_utils.filters_logical_and", lambda *args: {})
 
 
 @pytest.fixture
@@ -50,6 +46,78 @@ def mock_catshtm(monkeypatch):
 
 
 @pytest.fixture
-async def test_client(mock_extcats, mock_catshtm):
+async def mock_client(mock_extcats, mock_catshtm):
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture(scope="session")
+def web_service():
+    """
+    Bring up an instance of the service in Nginx Unit, using docker-compose
+    """
+    basedir = Path(__file__).parent.parent
+    try:
+        subprocess.check_call(
+            ["docker-compose", "up", "-d", "--force-recreate"],
+            cwd=basedir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        raise pytest.skip("integration test requires docker-compose")
+    try:
+        # wait for Unit emit the provided configuration over the control socket,
+        # indicating that it has restarted and is ready to accept requests
+        web = subprocess.check_output(["docker-compose", "ps", "-q", "web"]).strip()
+        delay = 0.1
+        for _ in range(10):
+            try:
+                config = json.loads(
+                    subprocess.check_output(
+                        [
+                            "docker",
+                            "exec",
+                            web,
+                            "curl",
+                            "--unix-socket",
+                            "/run/control.unit.sock",
+                            "http://localhost/",
+                        ]
+                    )
+                )
+                if "catalog-server" in config.get("config", {}).get("applications", {}):
+                    break
+            except subprocess.CalledProcessError:
+                ...
+            time.sleep(delay)
+            delay *= 2
+        else:
+            raise RuntimeError("Application server failed to start")
+        # find the external mapping for port 80
+        port = (
+            subprocess.check_output(["docker-compose", "port", "web", "80"])
+            .strip()
+            .decode()
+            .split(":")[1]
+        )
+        yield f"http://localhost:{port}"
+    finally:
+        subprocess.check_call(
+            ["docker-compose", "down"],
+            cwd=basedir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+
+@pytest.fixture
+async def integration_client(web_service):
+    async with AsyncClient(base_url=web_service) as client:
+        yield client
+
+
+# metafixture as suggested in https://github.com/pytest-dev/pytest/issues/349#issuecomment-189370273
+@pytest.fixture(params=["mock_client", "integration_client"])
+def test_client(request):
+    yield request.getfixturevalue(request.param)
