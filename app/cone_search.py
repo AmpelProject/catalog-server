@@ -174,8 +174,8 @@ def search_any(request: ConeSearchRequest) -> List[bool]:
     return [search_any_item(item, coord) for item in request.catalogs]
 
 
-@router.post("/nearest", response_model=Optional[CatalogItem])
-def search_nearest(request: ConeSearchRequest) -> Optional[CatalogItem]:
+@router.post("/nearest", response_model=List[Optional[CatalogItem]])
+def search_nearest(request: ConeSearchRequest) -> List[Optional[CatalogItem]]:
     """
     Find nearest source in search radius
     """
