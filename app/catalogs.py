@@ -118,6 +118,6 @@ def extcats_catalog_descriptions(mongo: MongoClient):
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=List[CatalogDescription])
 def list_catalogs(mongo=Depends(get_mongo)) -> List[CatalogDescription]:
     return extcats_catalog_descriptions(mongo) + catshtm_catalog_descriptions()

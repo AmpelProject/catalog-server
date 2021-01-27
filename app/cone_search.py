@@ -165,7 +165,7 @@ def _(item: CatsHTMQueryItem, coord: SkyCoord) -> Optional[List[CatalogItem]]:
 
 router = APIRouter()
 
-@router.post("/any")
+@router.post("/any", response_model=List[bool])
 def search_any(request: ConeSearchRequest) -> List[bool]:
     """
     Are there sources in the search radius?
@@ -174,7 +174,7 @@ def search_any(request: ConeSearchRequest) -> List[bool]:
     return [search_any_item(item, coord) for item in request.catalogs]
 
 
-@router.post("/nearest")
+@router.post("/nearest", response_model=Optional[CatalogItem])
 def search_nearest(request: ConeSearchRequest) -> Optional[CatalogItem]:
     """
     Find nearest source in search radius
@@ -183,7 +183,7 @@ def search_nearest(request: ConeSearchRequest) -> Optional[CatalogItem]:
     return [search_nearest_item(item, coord) for item in request.catalogs]
 
 
-@router.post("/all")
+@router.post("/all", response_model=List[Optional[List[CatalogItem]]])
 def search_all(request: ConeSearchRequest) -> List[Optional[List[CatalogItem]]]:
     """
     Find all sources in the search radius
