@@ -55,6 +55,7 @@ async def test_search_nearest(ra, dec, catalogs, expected, test_client):
     (5,5,[ExtcatsQueryItem(**{"name": "milliquas", "rs_arcsec": 60})], None),
     (265,-89.58,[ExtcatsQueryItem(**{"name": "milliquas", "rs_arcsec": 60})], 1),
 ])
+@pytest.mark.asyncio
 async def test_search_all(ra, dec, catalogs, expected, test_client):
     request = ConeSearchRequest(
         ra_deg=ra, dec_deg=dec, catalogs=catalogs
