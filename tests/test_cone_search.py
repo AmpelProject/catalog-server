@@ -43,7 +43,8 @@ async def test_search_nearest(ra, dec, catalogs, expected, test_client):
     )
     response = await test_client.post("/cone_search/nearest", json=request.dict())
     response.raise_for_status()
-    assert len(body := response.json()) == 1
+    body = response.json()
+    assert len(body) == 1
     if expected[0]:
         assert body[0]["dist_arcsec"] < catalogs[0].rs_arcsec
     else:
@@ -62,7 +63,8 @@ async def test_search_all(ra, dec, catalogs, expected, test_client):
     )
     response = await test_client.post("/cone_search/all", json=request.dict())
     response.raise_for_status()
-    assert len(body := response.json()) == 1
+    body = response.json()
+    assert len(body) == 1
     if expected:
         for entry in body[0]:
             assert entry["body"]

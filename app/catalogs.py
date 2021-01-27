@@ -55,12 +55,11 @@ def catshtm_catalog_descriptions():
         XMM (input name: XMM)- 7.3x10^5 sources 3XMM-DR7 (Rosen et al. 2016; A&A 26, 590)
         """.strip()
     ).readlines():
-        if (
-            match := re.match(
-                r"(?P<name>[\w/]+) \(input name: (?P<key>\w+)\)(\s*-\s*(?P<description>.*))?",
-                line.strip(),
-            )
-        ) :
+        match = re.match(
+            r"(?P<name>[\w/]+) \(input name: (?P<key>\w+)\)(\s*-\s*(?P<description>.*))?",
+            line.strip(),
+        )
+        if match:
             name = match.group("key")
             try:
                 meta = loadmat(
@@ -97,11 +96,8 @@ def catshtm_catalog_descriptions():
 def extcats_catalog_descriptions(mongo: MongoClient):
     catalogs = []
     for db in mongo.list_database_names():
-        if (
-            meta := mongo[db]
-            .get_collection("meta")
-            .find_one({"_id": "science"}, {"_id": 0})
-        ) :
+        meta = mongo[db].get_collection("meta").find_one({"_id": "science"}, {"_id": 0})
+        if meta:
             # use first entry as an example
             src = mongo[db].get_collection("srcs").find_one({}, {"_id": 0, "pos": 0})
             catalogs.append(
