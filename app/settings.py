@@ -1,6 +1,13 @@
 from typing import Optional, TYPE_CHECKING
 
-from pydantic import AnyUrl, BaseSettings, DirectoryPath, Field, stricturl
+from pydantic import (
+    AnyHttpUrl,
+    AnyUrl,
+    BaseSettings,
+    DirectoryPath,
+    Field,
+    stricturl,
+)
 
 # see: https://github.com/samuelcolvin/pydantic/issues/975#issuecomment-551147305
 if TYPE_CHECKING:
@@ -11,7 +18,7 @@ else:
 
 class Settings(BaseSettings):
     env: str = Field("prod", env="ENV")
-    app_url: MongoUrl = Field("http://127.0.0.1:8080", env="APP_URL")
+    app_url: AnyHttpUrl = Field("http://127.0.0.1:8080", env="APP_URL")
     mongo_uri: Optional[MongoUrl] = Field("mongodb://localhost:27018", env="MONGO_URI")
     catshtm_dir: Optional[DirectoryPath] = Field(None, env="CATSHTM_DIR")
 
