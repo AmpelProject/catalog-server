@@ -6,6 +6,9 @@ services:
     image: mongo:4.0
     volumes:
       - ./tests/test-data/minimongodumps:/docker-entrypoint-initdb.d
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 12345
   web:
     build: .
     volumes:
