@@ -6,7 +6,6 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from catsHTM import cone_search
-from extcats.CatalogQuery import CatalogQuery
 from extcats.catquery_utils import get_closest, get_distances
 from fastapi import APIRouter
 
@@ -16,15 +15,11 @@ from .models import (
     ConeSearchRequest,
     ExtcatsQueryItem,
 )
-from .mongo import get_mongo
+from .mongo import get_catq
 from .settings import settings
 
 if TYPE_CHECKING:
     from astropy.table.row import Row
-
-
-def get_catq(name: str) -> CatalogQuery:
-    return CatalogQuery(name, dbclient=next(get_mongo()))
 
 
 @singledispatch

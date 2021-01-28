@@ -9,6 +9,7 @@ from bson import decode_all
 from httpx import AsyncClient
 
 from app.main import app
+from app.mongo import get_catq
 from app.settings import Settings
 
 
@@ -41,6 +42,7 @@ def mock_mongoclient():
 @pytest.fixture
 def mock_extcats(monkeypatch, mock_mongoclient):
     monkeypatch.setattr("app.mongo.mongo_db", mock_mongoclient)
+    get_catq.cache_clear()
 
 
 @pytest.fixture

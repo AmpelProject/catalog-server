@@ -1,11 +1,13 @@
 import io
 import re
-from typing import List
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends
+from pymongo import MongoClient
+from pymongo.errors import OperationFailure
 
 from .models import CatalogDescription
-from .mongo import get_mongo, MongoClient, OperationFailure
+from .mongo import get_catq, get_mongo
 from .settings import settings
 
 
@@ -96,22 +98,29 @@ def catshtm_catalog_descriptions():
 def extcats_catalog_descriptions(mongo: MongoClient):
     catalogs = []
     for db in mongo.list_database_names():
+        # only return catalogs for which a CatalogQuery can be instantiated
         try:
-            meta = mongo[db].get_collection("meta").find_one({"_id": "science"}, {"_id": 0})
+            catq = get_catq(db)
+        except:
+            continue
+        try:
+            meta: Dict[str, Any] = next(
+                mongo[db].get_collection("meta").find({"_id": "science"}, {"_id": 0}),
+                {},
+            )
         except OperationFailure:
             # unauthorized
-            continue
-        if meta:
-            # use first entry as an example
-            src = mongo[db].get_collection("srcs").find_one({}, {"_id": 0, "pos": 0})
-            catalogs.append(
-                {
-                    "name": db,
-                    "use": "extcats",
-                    "columns": [{"name": k, "unit": None} for k in src.keys()],
-                    **meta,
-                }
-            )
+            meta = {}
+        # use first entry as an example
+        src: Dict[str, Any] = next(catq.src_coll.find({}, {"_id": 0, "pos": 0}), {})
+        catalogs.append(
+            {
+                "name": db,
+                "use": "extcats",
+                "columns": [{"name": k, "unit": None} for k in src.keys()],
+                **meta,
+            }
+        )
     return catalogs
 
 
@@ -120,4 +129,7 @@ router = APIRouter()
 
 @router.get("/", response_model=List[CatalogDescription])
 def list_catalogs(mongo=Depends(get_mongo)) -> List[CatalogDescription]:
+    """
+    Get set of usable catalogs
+    """
     return extcats_catalog_descriptions(mongo) + catshtm_catalog_descriptions()

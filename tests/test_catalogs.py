@@ -1,5 +1,5 @@
-
 import pytest
+
 
 @pytest.mark.asyncio
 async def test_list_catalogs(test_client):
