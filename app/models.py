@@ -11,11 +11,13 @@ from pydantic import BaseModel, Field, validator
 
 from .mongo import get_catq
 
+
 class CatalogQueryItem(BaseModel):
     name: str = Field(..., description="Name of catalog")
     rs_arcsec: float = Field(..., description="Search radius in arcseconds")
     keys_to_append: Optional[Sequence[str]] = Field(
-        None, description="Fields from catalog record to include in result"
+        None,
+        description="Fields from catalog record to include in result. If null, return the entire record.",
     )
 
 
