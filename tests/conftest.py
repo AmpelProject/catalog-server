@@ -12,6 +12,15 @@ from app.main import app
 from app.settings import Settings
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--integration",
+        action="store_true",
+        default=False,
+        help="run docker-based integration tests",
+    )
+
+
 @pytest.fixture(scope="session")
 def mock_mongoclient():
     test_data_dir = Path(__file__).parent / "test-data"
@@ -52,10 +61,12 @@ async def mock_client(mock_extcats, mock_catshtm):
 
 
 @pytest.fixture(scope="session")
-def web_service():
+def web_service(pytestconfig):
     """
     Bring up an instance of the service in Nginx Unit, using docker-compose
     """
+    if not pytestconfig.getoption("--integration"):
+        raise pytest.skip("integration tests require --integration flag")
     basedir = Path(__file__).parent.parent
     try:
         subprocess.check_call(
