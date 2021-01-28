@@ -46,6 +46,15 @@ def mock_extcats(monkeypatch, mock_mongoclient):
 
 
 @pytest.fixture
+def without_keys_doc(mock_mongoclient):
+    meta = mock_mongoclient.get_database("milliquas").get_collection("meta")
+    doc = meta.find_one_and_delete({"_id": "keys"})
+    get_catq.cache_clear()
+    yield
+    meta.insert_one(doc)
+
+
+@pytest.fixture
 def mock_catshtm(monkeypatch):
     settings = Settings(catshtm_dir=Path(__file__).parent / "test-data" / "catsHTM2")
     monkeypatch.setattr(
