@@ -101,6 +101,8 @@ def catshtm_catalog_descriptions():
 def extcats_catalog_descriptions(mongo: MongoClient):
     catalogs = []
     for db in mongo.list_database_names():
+        if db in {"local", "config", "admin"}:
+            continue
         # only return catalogs for which a CatalogQuery can be instantiated
         try:
             catq = get_catq(db)
@@ -115,8 +117,9 @@ def extcats_catalog_descriptions(mongo: MongoClient):
         except OperationFailure:
             # unauthorized
             meta = {}
-        # use first entry as an example
-        src: Dict[str, Any] = next(catq.src_coll.find({}, {"_id": 0, "pos": 0}), {})
+        # use first entry as an example, minus index fields
+        projection = {"_id": 0, **{k: 0 for k in [catq.hp_key, catq.s2d_key] if k is not None}}
+        src: Dict[str, Any] = next(catq.src_coll.find({}, projection), {})
         catalogs.append(
             {
                 "name": db,

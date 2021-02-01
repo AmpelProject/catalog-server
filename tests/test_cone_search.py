@@ -23,7 +23,7 @@ async def test_invalid_catalog_name(method, use, test_client):
     response = await test_client.post(f"/cone_search/{method}", json=request)
     assert response.status_code == 422
 
-
+@pytest.mark.xfail
 @pytest.mark.asyncio
 async def test_missing_keys_doc(without_keys_doc, mock_client):
     """
@@ -45,6 +45,7 @@ def with_request(expected):
         (5, 5, [{"use": "catsHTM", "name": "ROSATfsc", "rs_arcsec": 60}]),
         (5, 5, [{"use": "extcats", "name": "milliquas", "rs_arcsec": 60}]),
         (265, -89.58, [{"use": "extcats", "name": "milliquas", "rs_arcsec": 60}],),
+        (0, 0, [{"use": "extcats", "name": "TNS", "rs_arcsec": 2400}],),
     ]
     return pytest.mark.parametrize(
         "request_dict,expected",
@@ -54,21 +55,26 @@ def with_request(expected):
         ],
     )
 
+async def search(test_client, method, request_dict):
+    if test_client.base_url.host == "test" and any(c["name"] == "TNS" for c in request_dict["catalogs"]):
+        pytest.xfail("mongomock does not implement $geoWithin")
+    response = await test_client.post(f"/cone_search/{method}", json=request_dict)
+    response.raise_for_status()
+    return response.json()
 
-@with_request([[True], [False], [False], [True]])
+@with_request([[True], [False], [False], [True], [True]])
 @pytest.mark.asyncio
 async def test_search_any(request_dict, expected, test_client):
-    response = await test_client.post("/cone_search/any", json=request_dict)
-    response.raise_for_status()
-    assert response.json() == expected
+    body = await search(test_client, "any", request_dict)
+    assert body == expected
 
 
-@with_request([[True], [None], [None], [True]])
+
+
+@with_request([[True], [None], [None], [True], [True]])
 @pytest.mark.asyncio
 async def test_search_nearest(request_dict, expected, test_client):
-    response = await test_client.post("/cone_search/nearest", json=request_dict)
-    response.raise_for_status()
-    body = response.json()
+    body = await search(test_client, "nearest", request_dict)
     assert len(body) == 1
     if expected[0]:
         assert body[0]["dist_arcsec"] < request_dict["catalogs"][0]["rs_arcsec"]
@@ -76,12 +82,10 @@ async def test_search_nearest(request_dict, expected, test_client):
         assert body == expected
 
 
-@with_request([9, None, None, 1])
+@with_request([9, None, None, 1, 12])
 @pytest.mark.asyncio
 async def test_search_all(request_dict, expected, test_client):
-    response = await test_client.post("/cone_search/all", json=request_dict)
-    response.raise_for_status()
-    body = response.json()
+    body = await search(test_client, "all", request_dict)
     assert len(body) == 1
     if expected:
         for entry in body[0]:

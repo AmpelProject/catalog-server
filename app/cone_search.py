@@ -37,7 +37,7 @@ def sanitize_json(obj):
 
 
 def table_to_json(
-    table: Optional["Table"], allow_keys: Optional[Set[str]]
+    table: Optional["Table"], allow_keys: Optional[Set[str]], disallow_keys: Set[str]=set()
 ) -> Optional[List[Dict[str, Any]]]:
     if table is None:
         return None
@@ -57,13 +57,14 @@ def table_to_json(
             k: sanitize_json(v)
             for k, v in zip(keys, np.asarray(row).tolist())
             if (allow_keys is None or k in allow_keys)
+            and (k not in disallow_keys)
         }
         for row in table.iterrows()
     ]
 
 
 def row_to_json(
-    row: Optional["Row"], allow_keys: Optional[Set[str]]
+    row: Optional["Row"], allow_keys: Optional[Set[str]], disallow_keys: Set[str]=set()
 ) -> Optional[Dict[str, Any]]:
     if row is None:
         return None
@@ -72,6 +73,7 @@ def row_to_json(
         k: sanitize_json(v)
         for k, v in zip(keys, row)
         if (allow_keys is None or k in allow_keys)
+        and (k not in disallow_keys)
     }
 
 
@@ -152,37 +154,40 @@ def _(item: ExtcatsQueryItem, coord: SkyCoord) -> bool:
 
 def get_catq_with_projection(
     item: ExtcatsQueryItem,
-) -> Tuple[CatalogQuery, Dict[str, Any], Optional[Set[str]]]:
+) -> Tuple[CatalogQuery, Dict[str, Any], Optional[Set[str]], Set[str]]:
     catq = get_catq(item.name)
     # do not return structured index fields
+    remove_keys = set([k for k in [catq.hp_key, catq.s2d_key] if k is not None])
+    remove_keys.update({"_ra", "_dec"})
     if item.keys_to_append is None:
-        projection = {"_id": 0, "pos": 0}
+        projection = {"_id": 0}
         output_keys = None
     else:
         projection = {
+            "pos": 1,
             catq.ra_key: 1,
             catq.dec_key: 1,
             **{k: 1 for k in item.keys_to_append},
         }
-        output_keys = set(item.keys_to_append).difference({"_id", "pos"})
-    return catq, projection, output_keys
+        output_keys = set(item.keys_to_append).difference({"_id"}.union(remove_keys))
+    return catq, projection, output_keys, remove_keys
 
 
 @search_nearest_item.register  # type: ignore[no-redef]
 def _(item: ExtcatsQueryItem, coord: SkyCoord) -> Optional[CatalogItem]:  # type: ignore[no-redef]
-    catq, projection, output_keys = get_catq_with_projection(item)
+    catq, projection, allow_keys, disallow_keys = get_catq_with_projection(item)
     row, dist = catq.findclosest(
         coord.ra.deg, coord.dec.deg, item.rs_arcsec, projection=projection,
     )
     if row:
-        return CatalogItem(body=row_to_json(row, output_keys,), dist_arcsec=dist,)
+        return CatalogItem(body=row_to_json(row, allow_keys, disallow_keys), dist_arcsec=dist,)
     else:
         return None
 
 
 @search_all_item.register  # type: ignore[no-redef]
 def _(item: ExtcatsQueryItem, coord: SkyCoord) -> Optional[List[CatalogItem]]:
-    catq, projection, output_keys = get_catq_with_projection(item)
+    catq, projection, allow_keys, disallow_keys = get_catq_with_projection(item)
     srcs_tab = catq.findwithin(
         coord.ra.deg, coord.dec.deg, item.rs_arcsec, projection=projection
     )
@@ -190,7 +195,7 @@ def _(item: ExtcatsQueryItem, coord: SkyCoord) -> Optional[List[CatalogItem]]:
         dists = get_distances(
             coord.ra.degree, coord.dec.degree, srcs_tab, catq.ra_key, catq.dec_key,
         )
-        rows = table_to_json(srcs_tab, output_keys)
+        rows = table_to_json(srcs_tab, allow_keys, disallow_keys)
         return [
             CatalogItem(body=row, dist_arcsec=dist) for row, dist in zip(rows, dists)
         ]

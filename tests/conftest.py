@@ -1,6 +1,7 @@
 import json
 import subprocess
 import time
+import os
 from pathlib import Path
 
 import mongomock
@@ -27,15 +28,16 @@ def mock_mongoclient():
     test_data_dir = Path(__file__).parent / "test-data"
     mc = mongomock.MongoClient()
     # read catalogs from test-data, adding key metadata
-    # milliquas happens to have both geoJSON and healpix indexes, and will
-    # default to healpix, which works with mongomock
-    for catalog in ("milliquas",):
+    # - milliquas happens to have both geoJSON and healpix indexes, and will
+    #   default to healpix, which works with mongomock
+    # - TNS has a geoJSON index only
+    for catalog, count in (("TNS", 12), ("milliquas", 10)):
         db = mc.get_database(catalog)
         with open(test_data_dir / "minimongodumps" / catalog / "meta.bson", "rb") as f:
             db.get_collection("meta").insert_many(decode_all(f.read()))
         with open(test_data_dir / "minimongodumps" / catalog / "srcs.bson", "rb") as f:
             db.get_collection("srcs").insert_many(decode_all(f.read()))
-        assert db.get_collection("srcs").count() == 10
+        assert db.get_collection("srcs").count() == count
     return mc
 
 
@@ -43,6 +45,19 @@ def mock_mongoclient():
 def mock_extcats(monkeypatch, mock_mongoclient):
     monkeypatch.setattr("app.mongo.mongo_db", mock_mongoclient)
     get_catq.cache_clear()
+
+
+@pytest.fixture
+def local_mongo(monkeypatch):
+    from pymongo import MongoClient
+
+    if "MONGO_URI" in os.environ:
+        monkeypatch.setattr("app.mongo.mongo_db", MongoClient(os.environ["MONGO_URI"]))
+        get_catq.cache_clear()
+        yield
+        get_catq.cache_clear()
+    else:
+        pytest.skip("No local MongoDB")
 
 
 @pytest.fixture
@@ -58,15 +73,17 @@ def without_keys_doc(mock_mongoclient):
 def mock_catshtm(monkeypatch):
     settings = Settings(catshtm_dir=Path(__file__).parent / "test-data" / "catsHTM2")
     monkeypatch.setattr(
-        "app.cone_search.settings", settings,
+        "app.cone_search.settings",
+        settings,
     )
     monkeypatch.setattr(
-        "app.catalogs.settings", settings,
+        "app.catalogs.settings",
+        settings,
     )
 
 
 @pytest.fixture
-async def mock_client(mock_extcats, mock_catshtm):
+async def mock_client(mock_extcats, mock_catshtm, without_keys_doc):
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
 
@@ -78,6 +95,10 @@ def web_service(pytestconfig):
     """
     if not pytestconfig.getoption("--integration"):
         raise pytest.skip("integration tests require --integration flag")
+    # use an external fixture for local development
+    if "CATALOGSERVER_URI" in os.environ:
+        yield os.environ["CATALOGSERVER_URI"]
+        return
     basedir = Path(__file__).parent.parent
     try:
         subprocess.check_call(
