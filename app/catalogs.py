@@ -1,4 +1,5 @@
 import io
+import logging
 import re
 from typing import Any, Dict, List
 
@@ -9,6 +10,8 @@ from pymongo.errors import OperationFailure
 from .models import CatalogDescription
 from .mongo import get_catq, get_mongo
 from .settings import settings
+
+log = logging.getLogger(__name__)
 
 
 def catshtm_catalog_descriptions():
@@ -102,6 +105,7 @@ def extcats_catalog_descriptions(mongo: MongoClient):
         try:
             catq = get_catq(db)
         except:
+            log.exception(f"{db} is not a valid extcats catalog")
             continue
         try:
             meta: Dict[str, Any] = next(
