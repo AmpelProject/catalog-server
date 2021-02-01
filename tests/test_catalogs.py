@@ -1,4 +1,5 @@
 import pytest
+from app.mongo import get_catq
 
 
 @pytest.mark.asyncio
@@ -7,18 +8,67 @@ async def test_list_catalogs(test_client):
     response.raise_for_status()
     body = response.json()
     assert isinstance(body, list)
-    assert len(body) == 2
+    assert len(body) == 3
 
-    extcats = body[0]
-    assert extcats["use"] == "extcats"
-    assert extcats["name"] == "milliquas"
-    assert len(extcats["columns"]) == 21
+    milliquas = body[1]
+    assert milliquas["use"] == "extcats"
+    assert milliquas["name"] == "milliquas"
+    assert set(c["name"] for c in milliquas["columns"]) == {
+        "ra",
+        "dec",
+        "name",
+        "lii",
+        "bii",
+        "broad_type",
+        "rmag",
+        "bmag",
+        "optical_flag",
+        "red_psf_flag",
+        "blue_psf_flag",
+        "redshift",
+        "ref_name",
+        "ref_redshift",
+        "qso_prob",
+        "radio_name",
+        "xray_name",
+        "alt_name_1",
+        "alt_name_2",
+        "_19",
+    }
 
-    catshtm = body[1]
+    tns = body[0]
+    assert tns["use"] == "extcats"
+    assert tns["name"] == "TNS"
+    assert set(c["name"] for c in tns["columns"]) == {
+        "reporting_group",
+        "end_prop_period",
+        "internal_names",
+        "redshift",
+        "discoverer",
+        "hostname",
+        "host_redshift",
+        "discovery_data_source",
+        "sourceid",
+        "internal_name",
+        "discoverymag",
+        "public",
+        "type",
+        "discmagfilter",
+        "isTNS_AT",
+        "name_prefix",
+        "objname",
+        "name",
+        "discovererid",
+        "discoverydate",
+        "object_type",
+    }
+
+    catshtm = body[2]
     assert catshtm["use"] == "catsHTM"
     assert len(catshtm["columns"]) == 21
 
 
+@pytest.mark.xfail
 @pytest.mark.asyncio
 async def test_missing_keys_doc(without_keys_doc, mock_client):
     """

@@ -8,6 +8,7 @@ MONGO_PASSWORD=seekrit
 catalogs=\"$(find $MONGODUMP_DIR/ -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | xargs echo)\"
 # munge into list of js objects
 roles=$(echo $catalogs | jq 'split(" ") | [{db : .[], role : "read"}]')
+echo $roles
 
 mongo=( mongo --host 127.0.0.1 --port 27017 --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin )
 "${mongo[@]}" admin <<-EOJS
@@ -27,4 +28,4 @@ mongo=( mongo --host 127.0.0.1 --port 27017 --username $MONGO_INITDB_ROOT_USERNA
 EOJS
 
 restore=( mongorestore --host 127.0.0.1 --port 27017 --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin )
-${restore[@]} -d milliquas $MONGODUMP_DIR/milliquas
+find $MONGODUMP_DIR/ -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | xargs -L1 -iTARGET ${restore[@]} -d TARGET $MONGODUMP_DIR/TARGET
