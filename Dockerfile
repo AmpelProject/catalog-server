@@ -1,4 +1,4 @@
-FROM nginx/unit:1.21.0-python3.7
+FROM nginx/unit:1.22.0-python3.9
 
 # install and cleanup (saving python3-six)
 COPY requirements.txt /config/requirements.txt
