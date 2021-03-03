@@ -35,6 +35,9 @@ async def test_list_catalogs(test_client):
         "alt_name_2",
         "_19",
     }
+    assert milliquas["description"] == "compilation of AGN and Quasar"
+    assert milliquas["contact"] == "C. Norris <chuck.norris@desy.de>"
+    assert milliquas["reference"] == "http://quasars.org/milliquas.htm"
 
     tns = body[0]
     assert tns["use"] == "extcats"
@@ -66,6 +69,7 @@ async def test_list_catalogs(test_client):
     catshtm = body[2]
     assert catshtm["use"] == "catsHTM"
     assert len(catshtm["columns"]) == 21
+    assert catshtm["contact"] == "Eran Ofek <eran.ofek@weizmann.ac.il>"
 
 
 @pytest.mark.xfail

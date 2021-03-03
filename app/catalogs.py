@@ -87,6 +87,8 @@ def catshtm_catalog_descriptions():
                             if s
                         ]
                     ),
+                    "reference": "https://doi.org/10.1088/1538-3873/aac410",
+                    "contact": "Eran Ofek <eran.ofek@weizmann.ac.il>",
                     "columns": [
                         {"name": str(k[0]), "unit": str(u[0]) if len(u) else None}
                         for k, u in zip(
@@ -125,7 +127,9 @@ def extcats_catalog_descriptions(mongo: MongoClient):
                 "name": db,
                 "use": "extcats",
                 "columns": [{"name": k, "unit": None} for k in src.keys()],
-                **meta,
+                "description": meta.get("description"),
+                "reference": meta.get("ref"),
+                "contact": f"{meta['contact']} <{meta.get('email')}>" if 'contact' in meta else None
             }
         )
     return catalogs

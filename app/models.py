@@ -75,4 +75,6 @@ class CatalogDescription(BaseModel):
     name: str
     use: Literal["extcats", "catsHTM"]
     description: Optional[str]
+    reference: Optional[str]
+    contact: Optional[str]
     columns: List[CatalogField]
