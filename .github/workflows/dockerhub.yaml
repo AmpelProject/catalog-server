@@ -1,7 +1,9 @@
-name: DockerHub
+name: cd
 
 on:
-  push: [tags]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   publish:
