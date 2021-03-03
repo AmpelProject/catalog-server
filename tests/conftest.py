@@ -129,7 +129,7 @@ def web_service(pytestconfig):
                         ]
                     )
                 )
-                if "catalog-server" in config.get("config", {}).get("applications", {}):
+                if "catalogmatch" in config.get("config", {}).get("applications", {}):
                     break
             except subprocess.CalledProcessError:
                 ...
@@ -157,7 +157,7 @@ def web_service(pytestconfig):
 
 @pytest.fixture
 async def integration_client(web_service):
-    async with AsyncClient(base_url=web_service) as client:
+    async with AsyncClient(base_url=web_service+"/api/catalogmatch") as client:
         yield client
 
 

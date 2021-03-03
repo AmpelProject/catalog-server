@@ -1,19 +1,31 @@
 {
     "listeners": {
         "*:80": {
-            "pass": "applications/catalog-server"
+            "pass": "routes/main"
         }
     },
 
+    "routes": {
+        "main": [
+            {
+                "match": {
+                    "uri": "/api/catalogmatch/*"
+                },
+                "action": {"pass": "applications/catalogmatch"}
+            }
+        ]
+    },
+
     "applications": {
-        "catalog-server": {
+        "catalogmatch": {
             "type": "python 3.9",
             "path": "/www",
             "module": "app.main",
             "callable": "app",
             "environment": {
               "MONGO_URI": "mongodb://nobody:seekrit@db:27017",
-              "CATSHTM_DIR": "/data/catsHTM"
+              "CATSHTM_DIR": "/data/catsHTM",
+              "ROOT_PATH": "/api/catalogmatch"
             }
         }
     }
