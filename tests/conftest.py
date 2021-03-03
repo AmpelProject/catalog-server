@@ -37,7 +37,7 @@ def mock_mongoclient():
             db.get_collection("meta").insert_many(decode_all(f.read()))
         with open(test_data_dir / "minimongodumps" / catalog / "srcs.bson", "rb") as f:
             db.get_collection("srcs").insert_many(decode_all(f.read()))
-        assert db.get_collection("srcs").count() == count
+        assert db.get_collection("srcs").count_documents({}) == count
     return mc
 
 
@@ -131,7 +131,6 @@ def web_service(pytestconfig):
                 )
                 if "catalog-server" in config.get("config", {}).get("applications", {}):
                     break
-                print(config)
             except subprocess.CalledProcessError:
                 ...
             time.sleep(delay)
