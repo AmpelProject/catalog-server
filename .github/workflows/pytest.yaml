@@ -23,4 +23,4 @@ jobs:
         mypy app
     - name: Test with pytest
       run: |
-        PYTHONPATH=. pytest --integration
+        PYTHONPATH=. pytest --integration -x

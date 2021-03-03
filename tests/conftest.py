@@ -137,6 +137,7 @@ def web_service(pytestconfig):
             time.sleep(delay)
             delay *= 2
         else:
+            subprocess.call(['docker', 'logs', web])
             raise RuntimeError(f"Application server ({web}) failed to start")
         # find the external mapping for port 80
         port = (
