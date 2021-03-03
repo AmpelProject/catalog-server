@@ -7,7 +7,7 @@
 
     "applications": {
         "catalog-server": {
-            "type": "python 3.7",
+            "type": "python 3.9",
             "path": "/www",
             "module": "app.main",
             "callable": "app",
