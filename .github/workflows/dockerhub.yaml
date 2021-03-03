@@ -28,9 +28,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags:
-          - ampelproject/catalog-server:${{steps.tag.outputs.tag}}
-          - ampelproject/catalog-server:latest
+        tags: ampelproject/catalog-server:${{steps.tag.outputs.tag}}, ampelproject/catalog-server:latest
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
       
