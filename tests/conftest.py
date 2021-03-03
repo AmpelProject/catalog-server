@@ -112,7 +112,7 @@ def web_service(pytestconfig):
     try:
         # wait for Unit emit the provided configuration over the control socket,
         # indicating that it has restarted and is ready to accept requests
-        web = subprocess.check_output(["docker-compose", "ps", "-q", "web"]).strip()
+        web = subprocess.check_output(["docker-compose", "ps", "-q", "web"]).strip().decode()
         delay = 0.1
         for _ in range(10):
             try:
@@ -131,12 +131,13 @@ def web_service(pytestconfig):
                 )
                 if "catalog-server" in config.get("config", {}).get("applications", {}):
                     break
+                print(config)
             except subprocess.CalledProcessError:
                 ...
             time.sleep(delay)
             delay *= 2
         else:
-            raise RuntimeError("Application server failed to start")
+            raise RuntimeError(f"Application server ({web}) failed to start")
         # find the external mapping for port 80
         port = (
             subprocess.check_output(["docker-compose", "port", "web", "80"])
