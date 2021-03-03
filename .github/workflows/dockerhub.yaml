@@ -1,9 +1,7 @@
 name: DockerHub
 
 on:
-  push:
-    branches:
-      - main
+  push: [tags]
 
 jobs:
   publish:
@@ -21,12 +19,16 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - id: tag
+      uses: dawidd6/action-get-tag@v1
     - name: Build and push
       id: docker_build
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags: ampelproject/catalog-server:latest
+        tags:
+          - ampelproject/catalog-server:${{steps.tag.outputs.tag}}
+          - ampelproject/catalog-server:latest
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
       
