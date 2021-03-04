@@ -12,6 +12,15 @@
                     "uri": "/api/catalogmatch/*"
                 },
                 "action": {"pass": "applications/catalogmatch"}
+            },
+            {
+                "match": {
+                    "uri": "/"
+                },
+                "action": {
+                    "return": 301,
+                    "location": "https://ampelproject.github.io/astronomy/ztf/index#services"
+                }
             }
         ]
     },
