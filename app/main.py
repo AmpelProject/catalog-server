@@ -19,7 +19,7 @@ tags_metadata = [
 app = FastAPI(
     title="Ampel Catalog Matching Service",
     description="Match celestial coordinates against catsHTM and extcats catalogs",
-    version="1.0.0",
+    version="1.0.1",
     openapi_tags=tags_metadata,
     root_path=settings.root_path,
 )

@@ -6,5 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2020-03-09
+### Fixed
+- Use extcats 2.4.1 for faster startup
+- Cache catalog descriptions and CatalogQuery instances unconditionally
+- Check that requested catsHTM catalogs actually exist on disk
+
 ## [1.0.0] - 2020-03-03
 Initial release.
