@@ -8,6 +8,7 @@ from astropy.table import Table
 from catsHTM import cone_search
 from extcats.catquery_utils import get_closest, get_distances
 from fastapi import APIRouter
+from pydantic import ValidationError
 
 from .models import (
     CatalogItem,
@@ -149,13 +150,17 @@ def _(item: CatsHTMQueryItem, coord: SkyCoord) -> Optional[List[CatalogItem]]:
 @search_any_item.register  # type: ignore[no-redef]
 def _(item: ExtcatsQueryItem, coord: SkyCoord) -> bool:
     # sic
-    return get_catq(item.name).binaryserach(coord.ra.deg, coord.dec.deg, item.rs_arcsec)
+    if (catq := get_catq(item.name)) is None:
+        raise ValueError(f"{item.name} is not a valid extcats catalog")
+    else:
+        return catq.binaryserach(coord.ra.deg, coord.dec.deg, item.rs_arcsec)
 
 
 def get_catq_with_projection(
     item: ExtcatsQueryItem,
 ) -> Tuple[CatalogQuery, Dict[str, Any], Optional[Set[str]], Set[str]]:
-    catq = get_catq(item.name)
+    if (catq := get_catq(item.name)) is None:
+        raise ValueError(f"{item.name} is not a valid extcats catalog")
     # do not return structured index fields
     remove_keys = set([k for k in [catq.hp_key, catq.s2d_key] if k is not None])
     remove_keys.update({"_ra", "_dec"})

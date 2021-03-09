@@ -32,9 +32,7 @@ class ExtcatsQueryItem(CatalogQueryItem):
 
     @validator("name")
     def check_name(cls, value):
-        try:
-            get_catq(value)
-        except:
+        if (catq := get_catq(value)) is None:
             raise ValueError(f"Unknown extcats catalog '{value}'")
         return value
 

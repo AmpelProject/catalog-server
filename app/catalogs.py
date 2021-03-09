@@ -1,6 +1,7 @@
 import io
 import logging
 import re
+from functools import lru_cache
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends
@@ -100,16 +101,14 @@ def catshtm_catalog_descriptions():
     return catalogs
 
 
-def extcats_catalog_descriptions(mongo: MongoClient):
+def extcats_catalog_descriptions() -> List[Dict[str,Any]]:
     catalogs = []
+    mongo = get_mongo()
     for db in mongo.list_database_names():
         if db in {"local", "config", "admin"}:
             continue
         # only return catalogs for which a CatalogQuery can be instantiated
-        try:
-            catq = get_catq(db)
-        except:
-            log.exception(f"{db} is not a valid extcats catalog")
+        if (catq := get_catq(db)) is None:
             continue
         try:
             meta: Dict[str, Any] = next(
@@ -135,12 +134,17 @@ def extcats_catalog_descriptions(mongo: MongoClient):
     return catalogs
 
 
+@lru_cache(maxsize=1)
+def catalog_descriptions():
+    return extcats_catalog_descriptions() + catshtm_catalog_descriptions() 
+
+
 router = APIRouter()
 
 
 @router.get("/", response_model=List[CatalogDescription])
-def list_catalogs(mongo=Depends(get_mongo)) -> List[CatalogDescription]:
+def list_catalogs() -> List[CatalogDescription]:
     """
     Get set of usable catalogs
     """
-    return extcats_catalog_descriptions(mongo) + catshtm_catalog_descriptions()
+    return catalog_descriptions()
