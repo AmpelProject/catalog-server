@@ -18,7 +18,7 @@ async def test_invalid_catalog_name(method, use, test_client):
     request = {
         "ra_deg": 0,
         "dec_deg": 0,
-        "catalogs": [{"name": "nonesuch", "use": use, "rs_arcsec": 0}],
+        "catalogs": [{"name": "TMASSxsc", "use": use, "rs_arcsec": 0}],
     }
     response = await test_client.post(f"/cone_search/{method}", json=request)
     assert response.status_code == 422

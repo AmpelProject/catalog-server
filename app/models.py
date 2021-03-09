@@ -6,10 +6,11 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
-from catsHTM.script import get_CatDir
+from catsHTM.script import get_CatDir, params
 from pydantic import BaseModel, Field, validator
 
 from .mongo import get_catq
+from .settings import settings
 
 
 class CatalogQueryItem(BaseModel):
@@ -42,8 +43,12 @@ class CatsHTMQueryItem(CatalogQueryItem):
 
     @validator("name")
     def check_name(cls, value):
+
         try:
-            get_CatDir(value)
+            if not (
+                settings.catshtm_dir / get_CatDir(value) / (params.ColCelFile % value)
+            ).exists():
+                raise FileNotFoundError
         except:
             raise ValueError(f"Unknown catsHTM catalog '{value}'")
         return value

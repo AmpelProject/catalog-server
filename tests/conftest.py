@@ -80,6 +80,11 @@ def mock_catshtm(monkeypatch):
         "app.catalogs.settings",
         settings,
     )
+    monkeypatch.setattr(
+        "app.models.settings",
+        settings,
+    )
+    
 
 
 @pytest.fixture
