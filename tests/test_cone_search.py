@@ -150,3 +150,31 @@ async def test_keys_to_append(
     #         assert entry["body"]
     # else:
     #     assert body[0] is None
+
+@pytest.mark.asyncio
+async def test_post_filter(
+    test_client
+):
+    request_dict = {
+        "ra_deg": 265,
+        "dec_deg": -89.58,
+        "catalogs": [
+            {
+                "use": "extcats",
+                "name": "milliquas",
+                "rs_arcsec": 60,
+                "post_filter": {"rmag": {"$lte": 19.07}},
+            }
+        ],
+    }
+    response = await test_client.post(f"/cone_search/all", json=request_dict)
+    response.raise_for_status()
+    body = response.json()
+    assert len(body) == 1 and len(body[0]) == 1
+
+    request_dict["catalogs"][0]["post_filter"]["rmag"] = {"$lt": 18}
+    response = await test_client.post(f"/cone_search/all", json=request_dict)
+    response.raise_for_status()
+    body = response.json()
+    assert len(body) == 1 and body[0] is None
+
