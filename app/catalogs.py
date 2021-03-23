@@ -148,3 +148,15 @@ def list_catalogs() -> List[CatalogDescription]:
     Get set of usable catalogs
     """
     return catalog_descriptions()
+
+
+@router.get("/{catalog}/{name}")
+def lookup(catalog: str, name: str, mongo = Depends(get_mongo)):
+    collection = mongo.get_database(catalog).get_collection("srcs")
+    # ensure search will be indexed
+    try:
+        if not any("name" in dict(idx["key"]) for idx in collection.index_information().values()):
+            raise HTTPException(status_code=404)
+    except OperationalError:
+        raise HTTPException(status_code=404)
+    return collection.find_one({"name": name}, {"_id": 0, "pos": 0})
